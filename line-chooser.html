@@ -1,0 +1,311 @@
+<link rel="import" href="../polymer/polymer-element.html">
+<link rel="import" href="../iron-resizable-behavior/iron-resizable-behavior.html">
+<link rel="import" href="../paper-radio-button/paper-radio-button.html">
+<link rel="import" href="../paper-radio-group/paper-radio-group.html">
+<link rel="import" href="../paper-toggle-button/paper-toggle-button.html">
+
+<dom-module id="line-chooser">
+  <template strip-whitespace>
+    <style>
+      :root {
+        --control-height:3em;
+      }
+      :host, canvas{
+        display:inline-block;
+      }
+      canvas{
+        background-color:#f00;
+        vertical-align:bottom;
+        display:block;
+        height:calc(100% - var(--control-height));
+        width:100%;
+      }
+      .control{
+        height:var(--control-height);
+        overflow:hidden;
+        width:100%;
+      }
+      .table{
+        display:table;
+        height:100%;
+        width:100%;
+        background-color:#ff0;
+      }
+      .row{
+        display:table-row;
+      }
+      #p1, #p2, paper-toggle-button{
+        display:table-cell;
+        vertical-align:middle;
+        text-align:center;
+        width:calc(100% / 3);
+      }
+    </style>
+    <div class="control"><div class="table"><paper-radio-group id="point" class="row" allow-empty-selection>
+      <paper-radio-button id="p1" name="p1">P1</paper-radio-button>
+      <paper-radio-button id="p2" name="p2">P2</paper-radio-button>
+      <paper-toggle-button checked="{{fromRight::change}}"></paper-toggle-button>
+    </paper-radio-group></div></div>
+    <canvas id="canvas"></canvas>
+  </template>
+
+  <script>
+    /**
+     * @param ctx : A canvas context
+     * @param text: The text we are going to centralize.
+     * @param x   : The x position of the rectangle.
+     * @param y   : The y position of the rectangle.
+     * @param w   : The width of the rectangle.
+     * @param h   : The height of the rectangle.
+     * @param lhf : Line height factor
+     */
+    paint_centered_wrap = function(ctx, text, x, y, w, h, line_height, line_scale = 1) {
+        console.log(x, y, w, h);
+      /*
+       * @param ctx : The 2d context
+       * @param mw  : The max width of the text accepted
+       * @param text: The text to be splitted   into
+       */
+      var split_lines = function(ctx, mw, text) {
+        ctx.save();
+
+        // We split the text by words
+        var words = text.split(' ');
+        var new_line = words[0];
+        var lines = [];
+        for(var i = 1; i < words.length; ++i) {
+          if(ctx.measureText(new_line + " " + words[i]).width < mw){
+            new_line += " " + words[i];
+          }else{
+            lines.push(new_line);
+            new_line = words[i];
+          }
+        }
+        lines.push(new_line);
+        return lines;
+      }
+
+      ctx.textBaseline = 'top';
+      ctx.textAlign = 'center';
+
+      // Paint text
+      var lines = split_lines(ctx, w, text);
+      // Block of text height
+      var height = lines.length * line_height * line_scale - (line_height * line_scale - line_height);
+      // We determine the y of the first line
+      var ly = y + (h - height) / 2;
+      for(var j = 0; j < lines.length; ++j, ly += line_height * line_scale){
+        // We continue to centralize the lines
+        let lx = x + w / 2;
+        ctx.fillText(lines[j], lx, ly);
+      }
+
+      ctx.restore();
+
+      return height > h;
+    }
+
+
+    class Info{
+      constructor(image, width, height){
+        this.scale = Math.min(width / image.width, height / image.height);
+        this.x = (width - image.width * this.scale) / 2;
+        this.y = (height - image.height * this.scale) / 2;
+        this.w = image.width * this.scale;
+        this.h = image.height * this.scale;
+      }
+
+      is_out_of_range(p){
+        return p.x < this.x || p.y < this.y || p.x > this.x + this.w || p.y > this.y + this.h;
+      }
+    };
+
+
+    /**
+     * `line-chooser`
+     * Select a p1 and an p2 point on an image
+     *
+     * @customElement
+     * @polymer
+     * @demo demo/index.html
+     */
+    class LineChooser extends Polymer.mixinBehaviors([Polymer.IronResizableBehavior], Polymer.Element) {
+      static get is() { return 'line-chooser'; }
+      static get properties() {
+        return {
+          url: {
+            type: String,
+            value: 'map.png',
+            observer: '_urlChanged'
+          },
+          image: {
+            type: Object,
+            observer: '_imgChanged'
+          },
+          image_info: {
+            type: Object
+          },
+          fromRight: {
+            type: Boolean,
+            value: true,
+            observer: '_draw'
+          }
+        };
+      }
+
+      constructor(){
+        super();
+        this._setState('init');
+        this.line = {};
+      }
+
+      ready(){
+        super.ready();
+        this.addEventListener('iron-resize', this._imgChanged);
+        this.$.canvas.addEventListener('mousemove', this._onMouseMove.bind(this));
+        this.$.canvas.addEventListener('mousedown', this._onMouseMove.bind(this));
+      }
+
+      _onMouseMove(event){
+        if(event.buttons != 0 && this.state === 'draw' && this.$.point.selected){
+          const rect = this.$.canvas.getBoundingClientRect();
+          const p = {
+            x: event.clientX - rect.left,
+            y: event.clientY - rect.top
+          };
+
+          this.line[this.$.point.selected] = p;
+
+          this._draw();
+        }
+      }
+
+      _draw(){
+        const ctx = this.$.canvas.getContext('2d');
+        const width = this.$.canvas.width;
+        const height = this.$.canvas.height;
+        const size = Math.min(width, height);
+
+        ctx.clearRect(0, 0, width, height);
+
+        if(this.image){
+          const info = new Info(this.image, width, height);
+          ctx.drawImage(this.image, info.x, info.y, info.w, info.h);
+          this.image_info = info;
+        }else{
+          const size = Math.min(width, height);
+          const font_size = size / 10;
+          ctx.font = font_size + 'px sans-serif';
+          paint_centered_wrap(ctx, 'no image', 0, 0, width, height, font_size);
+          this.image_info = undefined;
+        }
+
+        const is_valid = function(p){
+          return !!p && !this.image_info.is_out_of_range(p);
+        }.bind(this);
+
+        const p1_valid = is_valid(this.line.p1);
+        const p2_valid = is_valid(this.line.p2);
+
+        if(p1_valid || p2_valid){
+          const length = size / 40;
+
+          ctx.save();
+          ctx.lineWidth = length / 8;
+          ctx.strokeStyle = 'red';
+          ctx.fillStyle = 'red';
+
+          if(p1_valid !== p2_valid){
+            const p = this.line.p1 || this.line.p2;
+
+            // draw cross
+            ctx.beginPath();
+            ctx.moveTo(p.x - length, p.y - length);
+            ctx.lineTo(p.x + length, p.y + length);
+            ctx.moveTo(p.x + length, p.y - length);
+            ctx.lineTo(p.x - length, p.y + length);
+            ctx.stroke();
+          }
+
+          if(p1_valid && p2_valid){
+            // draw vector
+            const p1 = this.line.p1;
+            const p2 = this.line.p2;
+            let a = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+
+            ctx.beginPath();
+            ctx.moveTo(p1.x - length * Math.cos(a - Math.PI / 2), p1.y - length * Math.sin(a - Math.PI / 2));
+            ctx.lineTo(p1.x - length * Math.cos(a + Math.PI / 2), p1.y - length * Math.sin(a + Math.PI / 2));
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(p2.x, p2.y);
+
+            ctx.moveTo(p2.x - length * Math.cos(a - Math.PI / 6), p2.y - length * Math.sin(a - Math.PI / 6));
+            ctx.lineTo(p2.x, p2.y);
+            ctx.lineTo(p2.x - length * Math.cos(a + Math.PI / 6), p2.y - length * Math.sin(a + Math.PI / 6));
+            ctx.stroke();
+
+            a += Math.PI / 2;
+            if(this.fromRight) a += Math.PI;
+
+            const pm = {
+              x: (p2.x + p1.x) / 2 - length * Math.cos(a),
+              y: (p2.y + p1.y) / 2 - length * Math.sin(a)
+            };
+            ctx.beginPath();
+            ctx.moveTo(pm.x, pm.y);
+            ctx.lineTo(pm.x - length * Math.cos(a + Math.PI / 6), pm.y - length * Math.sin(a + Math.PI / 6));
+            ctx.lineTo(pm.x - length * Math.cos(a - Math.PI / 6), pm.y - length * Math.sin(a - Math.PI / 6));
+            ctx.fill();
+          }
+
+          ctx.restore();
+        }
+      }
+
+
+      _setImage(img){
+        console.log("set image");
+        if(typeof img === 'undefined' || img instanceof HTMLImageElement){
+          this.image = img;
+        }else{
+          throw "LineChooser set image: argument is not an instance of HTMLImageElement";
+        }
+      }
+
+      _setState(state){
+        console.log(state);
+        this.state = state;
+      }
+
+      _urlChanged(){
+        console.log("_urlChanged()");
+        const image = new Image();
+        const line_chooser = this;
+        image.onload = function(){
+          line_chooser._setImage(this);
+        };
+        image.onerror = function(){
+          line_chooser._setImage(undefined);
+        };
+        image.src = this.url;
+      }
+
+      _imgChanged(){
+        console.log("_imgChanged()");
+
+        if(this.image){
+          this._setState('draw');
+        }else{
+          this._setState('fail');
+        }
+
+        this.$.canvas.width = this.$.canvas.clientWidth;
+        this.$.canvas.height = this.$.canvas.clientHeight;
+
+        this._draw();
+      }
+    }
+
+    window.customElements.define(LineChooser.is, LineChooser);
+  </script>
+</dom-module>
