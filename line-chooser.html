@@ -7,7 +7,9 @@
 <dom-module id="line-chooser">
   <template strip-whitespace>
     <style>
-      :root {
+      :root{
+        --toggle-checked-color:var(--paper-green-500);
+        --toggle-unchecked-color:var(--paper-teal-500);
         --control-height:3em;
       }
       :host, canvas{
@@ -40,26 +42,26 @@
       #p1, #p2{
         width:30%;
       }
-      .toogle-cell{
+      .toggle-cell{
         width:40%;
       }
     </style>
     <custom-style>
       <style is="custom-style">
-        paper-toggle-button.toogle {
-          --paper-toggle-button-checked-bar-color:  var(--paper-green-500);
-          --paper-toggle-button-checked-button-color:  var(--paper-green-500);
-          --paper-toggle-button-checked-ink-color: var(--paper-green-500);
-          --paper-toggle-button-unchecked-bar-color:  var(--paper-teal-500);
-          --paper-toggle-button-unchecked-button-color:  var(--paper-teal-500);
-          --paper-toggle-button-unchecked-ink-color: var(--paper-teal-500);
+        paper-toggle-button.toggle{
+          --paper-toggle-button-checked-bar-color:var(--toggle-checked-color);
+          --paper-toggle-button-checked-button-color:var(--toggle-checked-color);
+          --paper-toggle-button-checked-ink-color:var(--toggle-checked-color);
+          --paper-toggle-button-unchecked-bar-color:var(--toggle-unchecked-color);
+          --paper-toggle-button-unchecked-button-color:var(--toggle-unchecked-color);
+          --paper-toggle-button-unchecked-ink-color:var(--toggle-unchecked-color);
         }
       </style>
     </custom-style>
     <div class="control"><div class="table"><paper-radio-group id="point" class="row" allow-empty-selection>
       <paper-radio-button class="cell" id="p1" name="p1">[[p1Text]]</paper-radio-button>
       <paper-radio-button class="cell" id="p2" name="p2">[[p2Text]]</paper-radio-button>
-      <div class="cell toogle-cell"><paper-toggle-button checked="{{fromRight::change}}" class="toogle">[[toggleText]]</paper-toggle-button></div>
+      <div class="cell toggle-cell"><paper-toggle-button id="toggle" checked="{{fromRight::change}}" class="toggle">[[toggleText]]</paper-toggle-button></div>
     </paper-radio-group></div></div>
     <canvas id="canvas"></canvas>
   </template>
@@ -177,6 +179,30 @@
           toggleText: {
             type: String,
             value: ''
+          },
+          p1x: {
+            type: Number,
+            readOnly: true,
+            notify: true,
+            computed: '_p1xCalc(image_info, line)'
+          },
+          p1y: {
+            type: Number,
+            readOnly: true,
+            notify: true,
+            computed: '_p1yCalc(image_info, line)'
+          },
+          p2x: {
+            type: Number,
+            readOnly: true,
+            notify: true,
+            computed: '_p2xCalc(image_info, line)'
+          },
+          p2y: {
+            type: Number,
+            readOnly: true,
+            notify: true,
+            computed: '_p2yCalc(image_info, line)'
           }
         };
       }
@@ -192,6 +218,22 @@
         this.addEventListener('iron-resize', this._imgChanged);
         this.$.canvas.addEventListener('mousemove', this._onMouseMove.bind(this));
         this.$.canvas.addEventListener('mousedown', this._onMouseMove.bind(this));
+      }
+
+      _p1xCalc(image_info, line){
+        return typeof line.p1 == 'undefined' || typeof image_info == 'undefined' ? NaN : (line.p1.x - image_info.x) / image_info.scale;
+      }
+
+      _p1yCalc(image_info, line){
+        return typeof line.p1 == 'undefined' || typeof image_info == 'undefined' ? NaN : (line.p1.y - image_info.y) / image_info.scale;
+      }
+
+      _p2xCalc(image_info, line){
+        return typeof line.p2 == 'undefined' || typeof image_info == 'undefined' ? NaN : (line.p2.x - image_info.x) / image_info.scale;
+      }
+
+      _p2yCalc(image_info, line){
+        return typeof line.p2 == 'undefined' || typeof image_info == 'undefined' ? NaN : (line.p2.y - image_info.y) / image_info.scale;
       }
 
       _onMouseMove(event){
@@ -240,8 +282,19 @@
 
           ctx.save();
           ctx.lineWidth = length / 8;
-          ctx.strokeStyle = 'red';
-          ctx.fillStyle = 'red';
+          const color = function(){
+              if(ShadyCSS){
+                return this.fromRight
+                  ? ShadyCSS.getComputedStyleValue(this.$.toggle, '--toggle-checked-color')
+                  : ShadyCSS.getComputedStyleValue(this.$.toggle, '--toggle-unchecked-color');
+              }else{
+                return this.fromRight
+                  ? getComputedStyle(this.$.toggle).getPropertyValue('--toggle-checked-color')
+                  : getComputedStyle(this.$.toggle).getPropertyValue('--toggle-unchecked-color');
+              }
+            }.bind(this)();
+          ctx.strokeStyle = color;
+          ctx.fillStyle = color;
 
           if(p1_valid !== p2_valid){
             const p = this.line.p1 || this.line.p2;
