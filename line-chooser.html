@@ -14,7 +14,6 @@
         display:inline-block;
       }
       canvas{
-        background-color:#f00;
         vertical-align:bottom;
         display:block;
         height:calc(100% - var(--control-height));
@@ -29,35 +28,52 @@
         display:table;
         height:100%;
         width:100%;
-        background-color:#ff0;
       }
       .row{
         display:table-row;
       }
-      #p1, #p2, paper-toggle-button{
+      .cell{
         display:table-cell;
         vertical-align:middle;
         text-align:center;
-        width:calc(100% / 3);
+      }
+      #p1, #p2{
+        width:30%;
+      }
+      .toogle-cell{
+        width:40%;
       }
     </style>
+    <custom-style>
+      <style is="custom-style">
+        paper-toggle-button.toogle {
+          --paper-toggle-button-checked-bar-color:  var(--paper-green-500);
+          --paper-toggle-button-checked-button-color:  var(--paper-green-500);
+          --paper-toggle-button-checked-ink-color: var(--paper-green-500);
+          --paper-toggle-button-unchecked-bar-color:  var(--paper-teal-500);
+          --paper-toggle-button-unchecked-button-color:  var(--paper-teal-500);
+          --paper-toggle-button-unchecked-ink-color: var(--paper-teal-500);
+        }
+      </style>
+    </custom-style>
     <div class="control"><div class="table"><paper-radio-group id="point" class="row" allow-empty-selection>
-      <paper-radio-button id="p1" name="p1">P1</paper-radio-button>
-      <paper-radio-button id="p2" name="p2">P2</paper-radio-button>
-      <paper-toggle-button checked="{{fromRight::change}}"></paper-toggle-button>
+      <paper-radio-button class="cell" id="p1" name="p1">[[p1Text]]</paper-radio-button>
+      <paper-radio-button class="cell" id="p2" name="p2">[[p2Text]]</paper-radio-button>
+      <div class="cell toogle-cell"><paper-toggle-button checked="{{fromRight::change}}" class="toogle">[[toggleText]]</paper-toggle-button></div>
     </paper-radio-group></div></div>
     <canvas id="canvas"></canvas>
   </template>
 
   <script>
     /**
-     * @param ctx : A canvas context
-     * @param text: The text we are going to centralize.
-     * @param x   : The x position of the rectangle.
-     * @param y   : The y position of the rectangle.
-     * @param w   : The width of the rectangle.
-     * @param h   : The height of the rectangle.
-     * @param lhf : Line height factor
+     * @param ctx         : A canvas context
+     * @param text        : The text we are going to centralize.
+     * @param x           : The x position of the rectangle.
+     * @param y           : The y position of the rectangle.
+     * @param w           : The width of the rectangle.
+     * @param h           : The height of the rectangle.
+     * @param line_height : height of a line in pixel
+     * @param line_scale  : factor for space beween lines (1 == no space)
      */
     paint_centered_wrap = function(ctx, text, x, y, w, h, line_height, line_scale = 1) {
         console.log(x, y, w, h);
@@ -149,6 +165,18 @@
             type: Boolean,
             value: true,
             observer: '_draw'
+          },
+          p1Text: {
+            type: String,
+            value: 'P1'
+          },
+          p2Text: {
+            type: String,
+            value: 'P2'
+          },
+          toggleText: {
+            type: String,
+            value: ''
           }
         };
       }
