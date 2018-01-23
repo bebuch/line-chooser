@@ -4,7 +4,7 @@
 <link rel="import" href="../paper-radio-group/paper-radio-group.html">
 <link rel="import" href="../paper-toggle-button/paper-toggle-button.html">
 
-<dom-module id="line-chooser">
+<dom-module id="path-selector">
   <template strip-whitespace>
     <style>
       :root{
@@ -140,7 +140,7 @@
 
 
     /**
-     * `line-chooser`
+     * `path-selector`
      * Select a p1 and an p2 point on an image
      *
      * @customElement
@@ -148,7 +148,7 @@
      * @demo demo/index.html
      */
     class LineChooser extends Polymer.mixinBehaviors([Polymer.IronResizableBehavior], Polymer.Element) {
-      static get is() { return 'line-chooser'; }
+      static get is() { return 'path-selector'; }
       static get properties() {
         return {
           url: {

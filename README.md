@@ -1,4 +1,4 @@
-# \<line-chooser\>
+# \<path-selector\>
 
 Select a start and an end point on an image
 

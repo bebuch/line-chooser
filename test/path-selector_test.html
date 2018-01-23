@@ -4,36 +4,36 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes">
 
-    <title>line-chooser test</title>
+    <title>path-selector test</title>
 
     <script src="../../webcomponentsjs/webcomponents-lite.js"></script>
     <script src="../../web-component-tester/browser.js"></script>
 
-    <link rel="import" href="../line-chooser.html">
+    <link rel="import" href="../path-selector.html">
   </head>
   <body>
 
     <test-fixture id="BasicTestFixture">
       <template>
-        <line-chooser></line-chooser>
+        <path-selector></path-selector>
       </template>
     </test-fixture>
 
     <test-fixture id="ChangedPropertyTestFixture">
       <template>
-        <line-chooser prop1="new-prop1"></line-chooser>
+        <path-selector prop1="new-prop1"></path-selector>
       </template>
     </test-fixture>
 
     <script>
-      suite('line-chooser', () => {
+      suite('path-selector', () => {
 
         test('instantiating the element with default properties works', () => {
           const element = fixture('BasicTestFixture');
-          assert.equal(element.prop1, 'line-chooser');
+          assert.equal(element.prop1, 'path-selector');
           const elementShadowRoot = element.shadowRoot;
           const elementHeader = elementShadowRoot.querySelector('h2');
-          assert.equal(elementHeader.innerHTML, 'Hello line-chooser!');
+          assert.equal(elementHeader.innerHTML, 'Hello path-selector!');
         });
 
         test('setting a property on the element works', () => {

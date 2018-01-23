@@ -1,7 +1,7 @@
 {
-  "name": "line-chooser",
+  "name": "path-selector",
   "description": "Select a start and an end point on an image",
-  "main": "line-chooser.html",
+  "main": "path-selector.html",
   "dependencies": {
     "polymer": "Polymer/polymer#^2.0.0",
     "iron-resizable-behavior": "PolymerElements/iron-resizable-behavior#^2.0.1",
