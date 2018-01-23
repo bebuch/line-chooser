@@ -8,8 +8,8 @@
   <template strip-whitespace>
     <style>
       :root{
-        --toggle-checked-color:var(--paper-green-500);
-        --toggle-unchecked-color:var(--paper-teal-500);
+        --path-selector-side-checked-color:var(--paper-green-500);
+        --path-selector-side-unchecked-color:var(--paper-teal-500);
         --control-height:3em;
       }
       :host, canvas{
@@ -21,7 +21,7 @@
         height:calc(100% - var(--control-height));
         width:100%;
       }
-      .control{
+      #control{
         height:var(--control-height);
         overflow:hidden;
         width:100%;
@@ -42,26 +42,29 @@
       #p1, #p2{
         width:30%;
       }
-      .toggle-cell{
+      .side-cell{
         width:40%;
       }
     </style>
     <custom-style>
       <style is="custom-style">
-        paper-toggle-button.toggle{
-          --paper-toggle-button-checked-bar-color:var(--toggle-checked-color);
-          --paper-toggle-button-checked-button-color:var(--toggle-checked-color);
-          --paper-toggle-button-checked-ink-color:var(--toggle-checked-color);
-          --paper-toggle-button-unchecked-bar-color:var(--toggle-unchecked-color);
-          --paper-toggle-button-unchecked-button-color:var(--toggle-unchecked-color);
-          --paper-toggle-button-unchecked-ink-color:var(--toggle-unchecked-color);
+        paper-toggle-button.side{
+          --paper-toggle-button-checked-bar-color:var(--path-selector-side-checked-color);
+          --paper-toggle-button-checked-button-color:var(--path-selector-side-checked-color);
+          --paper-toggle-button-checked-ink-color:var(--path-selector-side-checked-color);
+          --paper-toggle-button-unchecked-bar-color:var(--path-selector-side-unchecked-color);
+          --paper-toggle-button-unchecked-button-color:var(--path-selector-side-unchecked-color);
+          --paper-toggle-button-unchecked-ink-color:var(--path-selector-side-unchecked-color);
         }
       </style>
     </custom-style>
-    <div class="control"><div class="table"><paper-radio-group id="point" class="row" allow-empty-selection>
-      <paper-radio-button class="cell" id="p1" name="p1">[[p1Text]]</paper-radio-button>
-      <paper-radio-button class="cell" id="p2" name="p2">[[p2Text]]</paper-radio-button>
-      <div class="cell toggle-cell"><paper-toggle-button id="toggle" checked="{{fromRight::change}}" class="toggle">[[toggleText]]</paper-toggle-button></div>
+    <div id="control"><div class="table"><paper-radio-group id="point" class="row" allow-empty-selection>
+      <template is="dom-repeat" items="{{pointTexts}}">
+        <paper-radio-button class="cell" id="p[[index]]" name="p[[index]]">[[item]]</paper-radio-button>
+      </template>
+      <template is="dom-if" if="{{sideSelect}}">
+        <div class="cell side-cell"><paper-toggle-button id="side" checked="{{fromRight::change}}" class="side">[[sideText]]</paper-toggle-button></div>
+      </template>
     </paper-radio-group></div></div>
     <canvas id="canvas"></canvas>
   </template>
@@ -123,7 +126,6 @@
       return height > h;
     }
 
-
     class Info{
       constructor(image, width, height){
         this.scale = Math.min(width / image.width, height / image.height);
@@ -163,46 +165,22 @@
           image_info: {
             type: Object
           },
+          sideSelect: {
+            type: Boolean,
+            value: false
+          },
           fromRight: {
             type: Boolean,
             value: true,
             observer: '_draw'
           },
-          p1Text: {
+          sideText: {
             type: String,
-            value: 'P1'
+            value: 'Side'
           },
-          p2Text: {
-            type: String,
-            value: 'P2'
-          },
-          toggleText: {
-            type: String,
-            value: ''
-          },
-          p1x: {
-            type: Number,
-            readOnly: true,
-            notify: true,
-            computed: '_p1xCalc(image_info, line)'
-          },
-          p1y: {
-            type: Number,
-            readOnly: true,
-            notify: true,
-            computed: '_p1yCalc(image_info, line)'
-          },
-          p2x: {
-            type: Number,
-            readOnly: true,
-            notify: true,
-            computed: '_p2xCalc(image_info, line)'
-          },
-          p2y: {
-            type: Number,
-            readOnly: true,
-            notify: true,
-            computed: '_p2yCalc(image_info, line)'
+          pointTexts: {
+            type: Array,
+            value: ['P1']
           }
         };
       }
@@ -210,41 +188,28 @@
       constructor(){
         super();
         this._setState('init');
-        this.line = {};
       }
 
       ready(){
         super.ready();
+
         this.addEventListener('iron-resize', this._imgChanged);
+
         this.$.canvas.addEventListener('mousemove', this._onMouseMove.bind(this));
         this.$.canvas.addEventListener('mousedown', this._onMouseMove.bind(this));
-      }
 
-      _p1xCalc(image_info, line){
-        return typeof line.p1 == 'undefined' || typeof image_info == 'undefined' ? NaN : (line.p1.x - image_info.x) / image_info.scale;
-      }
-
-      _p1yCalc(image_info, line){
-        return typeof line.p1 == 'undefined' || typeof image_info == 'undefined' ? NaN : (line.p1.y - image_info.y) / image_info.scale;
-      }
-
-      _p2xCalc(image_info, line){
-        return typeof line.p2 == 'undefined' || typeof image_info == 'undefined' ? NaN : (line.p2.x - image_info.x) / image_info.scale;
-      }
-
-      _p2yCalc(image_info, line){
-        return typeof line.p2 == 'undefined' || typeof image_info == 'undefined' ? NaN : (line.p2.y - image_info.y) / image_info.scale;
+        this.points = new Array(this.pointTexts.length).fill({x: -1, y: -1});
       }
 
       _onMouseMove(event){
-        if(event.buttons != 0 && this.state === 'draw' && this.$.point.selected){
+        if(event.buttons != 0 && this.state === 'draw' && this.$.point.selectedItems.length > 0){
           const rect = this.$.canvas.getBoundingClientRect();
           const p = {
             x: event.clientX - rect.left,
             y: event.clientY - rect.top
           };
 
-          this.line[this.$.point.selected] = p;
+          this.points[this.$.point.selected.substr(1)] = p;
 
           this._draw();
         }
@@ -270,14 +235,17 @@
           this.image_info = undefined;
         }
 
+        if(!this.image_info) return;
+
         const is_valid = function(p){
           return !!p && !this.image_info.is_out_of_range(p);
         }.bind(this);
 
-        const p1_valid = is_valid(this.line.p1);
-        const p2_valid = is_valid(this.line.p2);
+        const points_valid = this.points.map(is_valid);
 
-        if(p1_valid || p2_valid){
+        const is_true = function(v){ return v === true; };
+
+        if(points_valid.some(is_true)){
           const length = size / 40;
 
           ctx.save();
@@ -285,58 +253,66 @@
           const color = function(){
               if(ShadyCSS){
                 return this.fromRight
-                  ? ShadyCSS.getComputedStyleValue(this.$.toggle, '--toggle-checked-color')
-                  : ShadyCSS.getComputedStyleValue(this.$.toggle, '--toggle-unchecked-color');
+                  ? ShadyCSS.getComputedStyleValue(this.$.control, '--path-selector-side-checked-color')
+                  : ShadyCSS.getComputedStyleValue(this.$.control, '--path-selector-side-unchecked-color');
               }else{
                 return this.fromRight
-                  ? getComputedStyle(this.$.toggle).getPropertyValue('--toggle-checked-color')
-                  : getComputedStyle(this.$.toggle).getPropertyValue('--toggle-unchecked-color');
+                  ? getComputedStyle(this.$.control).getPropertyValue('--path-selector-side-checked-color')
+                  : getComputedStyle(this.$.control).getPropertyValue('--path-selector-side-unchecked-color');
               }
             }.bind(this)();
           ctx.strokeStyle = color;
           ctx.fillStyle = color;
 
-          if(p1_valid !== p2_valid){
-            const p = this.line.p1 || this.line.p2;
+          if(points_valid.length == 1 || !points_valid.every(is_true)){
+            this.points.forEach(function(p, i){
+                if(!points_valid[i]) return;
 
-            // draw cross
+                // draw cross
+                ctx.beginPath();
+                ctx.moveTo(p.x - length, p.y - length);
+                ctx.lineTo(p.x + length, p.y + length);
+                ctx.moveTo(p.x + length, p.y - length);
+                ctx.lineTo(p.x - length, p.y + length);
+                ctx.stroke();
+              });
+          }else{
+            // draw vectors
             ctx.beginPath();
-            ctx.moveTo(p.x - length, p.y - length);
-            ctx.lineTo(p.x + length, p.y + length);
-            ctx.moveTo(p.x + length, p.y - length);
-            ctx.lineTo(p.x - length, p.y + length);
-            ctx.stroke();
-          }
 
-          if(p1_valid && p2_valid){
-            // draw vector
-            const p1 = this.line.p1;
-            const p2 = this.line.p2;
+            let p1 = this.points[0];
+            let p2 = this.points[1];
             let a = Math.atan2(p2.y - p1.y, p2.x - p1.x);
-
-            ctx.beginPath();
             ctx.moveTo(p1.x - length * Math.cos(a - Math.PI / 2), p1.y - length * Math.sin(a - Math.PI / 2));
             ctx.lineTo(p1.x - length * Math.cos(a + Math.PI / 2), p1.y - length * Math.sin(a + Math.PI / 2));
-            ctx.moveTo(p1.x, p1.y);
-            ctx.lineTo(p2.x, p2.y);
 
+            for(let i = 0; i < this.points.length - 1; ++i){
+              p1 = this.points[i];
+              p2 = this.points[i + 1];
+
+              ctx.moveTo(p1.x, p1.y);
+              ctx.lineTo(p2.x, p2.y);
+
+              if(this.sideSelect){
+                a = Math.atan2(p2.y - p1.y, p2.x - p1.x) + Math.PI / 2;
+                if(this.fromRight) a += Math.PI;
+
+                const pm = {
+                  x: (p2.x + p1.x) / 2 - length * Math.cos(a),
+                  y: (p2.y + p1.y) / 2 - length * Math.sin(a)
+                };
+                ctx.moveTo(pm.x, pm.y);
+                ctx.lineTo(pm.x - length * Math.cos(a + Math.PI / 6), pm.y - length * Math.sin(a + Math.PI / 6));
+                ctx.lineTo(pm.x - length * Math.cos(a - Math.PI / 6), pm.y - length * Math.sin(a - Math.PI / 6));
+                ctx.fill();
+              }
+            }
+
+            a = Math.atan2(p2.y - p1.y, p2.x - p1.x);
             ctx.moveTo(p2.x - length * Math.cos(a - Math.PI / 6), p2.y - length * Math.sin(a - Math.PI / 6));
             ctx.lineTo(p2.x, p2.y);
             ctx.lineTo(p2.x - length * Math.cos(a + Math.PI / 6), p2.y - length * Math.sin(a + Math.PI / 6));
             ctx.stroke();
-
-            a += Math.PI / 2;
-            if(this.fromRight) a += Math.PI;
-
-            const pm = {
-              x: (p2.x + p1.x) / 2 - length * Math.cos(a),
-              y: (p2.y + p1.y) / 2 - length * Math.sin(a)
-            };
-            ctx.beginPath();
-            ctx.moveTo(pm.x, pm.y);
-            ctx.lineTo(pm.x - length * Math.cos(a + Math.PI / 6), pm.y - length * Math.sin(a + Math.PI / 6));
-            ctx.lineTo(pm.x - length * Math.cos(a - Math.PI / 6), pm.y - length * Math.sin(a - Math.PI / 6));
-            ctx.fill();
           }
 
           ctx.restore();
