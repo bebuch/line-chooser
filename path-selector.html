@@ -10,7 +10,7 @@
       :root{
         --path-selector-side-checked-color:var(--paper-green-500);
         --path-selector-side-unchecked-color:var(--paper-teal-500);
-        --control-height:3em;
+        --control-height:6em;
       }
       :host, canvas{
         display:inline-block;
@@ -24,26 +24,18 @@
       #control{
         height:var(--control-height);
         overflow:hidden;
+        display:flex;
+        align-items:center;
+        align-content:stretch;
+        flex-wrap:wrap;
         width:100%;
-      }
-      .table{
-        display:table;
-        height:100%;
-        width:100%;
-      }
-      .row{
-        display:table-row;
       }
       .cell{
-        display:table-cell;
-        vertical-align:middle;
+        flex:1 0 auto;
         text-align:center;
       }
-      #p1, #p2{
-        width:30%;
-      }
-      .side-cell{
-        width:40%;
+      #side{
+        display:inline-block;
       }
     </style>
     <custom-style>
@@ -58,14 +50,14 @@
         }
       </style>
     </custom-style>
-    <div id="control"><div class="table"><paper-radio-group id="point" class="row" allow-empty-selection>
+    <paper-radio-group id="control" allow-empty-selection>
       <template is="dom-repeat" items="{{pointTexts}}">
         <paper-radio-button class="cell" id="p[[index]]" name="p[[index]]">[[item]]</paper-radio-button>
       </template>
       <template is="dom-if" if="{{sideSelect}}">
-        <div class="cell side-cell"><paper-toggle-button id="side" checked="{{fromRight::change}}" class="side">[[sideText]]</paper-toggle-button></div>
+        <paper-toggle-button id="side" checked="{{fromRight::change}}" class="cell side">[[sideText]]</paper-toggle-button>
       </template>
-    </paper-radio-group></div></div>
+    </paper-radio-group>
     <canvas id="canvas"></canvas>
   </template>
 
@@ -202,14 +194,14 @@
       }
 
       _onMouseMove(event){
-        if(event.buttons != 0 && this.state === 'draw' && this.$.point.selectedItems.length > 0){
+        if(event.buttons != 0 && this.state === 'draw' && this.$.control.selectedItems.length > 0){
           const rect = this.$.canvas.getBoundingClientRect();
           const p = {
             x: event.clientX - rect.left,
             y: event.clientY - rect.top
           };
 
-          this.points[this.$.point.selected.substr(1)] = p;
+          this.points[this.$.control.selected.substr(1)] = p;
 
           this._draw();
         }
