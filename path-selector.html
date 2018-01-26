@@ -10,25 +10,34 @@
       :root{
         --path-selector-side-checked-color:var(--paper-green-500);
         --path-selector-side-unchecked-color:var(--paper-teal-500);
-        --control-height:6em;
       }
-      :host, canvas{
+      :host{
         display:inline-block;
       }
-      canvas{
-        vertical-align:bottom;
-        display:block;
-        height:calc(100% - var(--control-height));
+      .container{
+        display:flex;
         width:100%;
+        height:100%;
+        flex-direction:column;
+        align-content:stretch;
+      }
+      .canvas-container{
+        position:relative;
+        flex:1 0 auto;
+      }
+      #canvas{
+        position:absolute;
+        top:0;
+        left:0;
+        width:100%;
+        height:100%;
       }
       #control{
-        height:var(--control-height);
-        overflow:hidden;
         display:flex;
-        align-items:center;
+        flex-direction:row;
         align-content:stretch;
         flex-wrap:wrap;
-        width:100%;
+        flex:0 0 auto;
       }
       .cell{
         flex:1 0 auto;
@@ -40,7 +49,7 @@
     </style>
     <custom-style>
       <style is="custom-style">
-        paper-toggle-button.side{
+        paper-toggle-button#side{
           --paper-toggle-button-checked-bar-color:var(--path-selector-side-checked-color);
           --paper-toggle-button-checked-button-color:var(--path-selector-side-checked-color);
           --paper-toggle-button-checked-ink-color:var(--path-selector-side-checked-color);
@@ -50,15 +59,17 @@
         }
       </style>
     </custom-style>
-    <paper-radio-group id="control" allow-empty-selection>
-      <template is="dom-repeat" items="{{pointTexts}}">
-        <paper-radio-button class="cell" id="p[[index]]" name="p[[index]]">[[item]]</paper-radio-button>
-      </template>
-      <template is="dom-if" if="{{sideSelect}}">
-        <paper-toggle-button id="side" checked="{{fromRight::change}}" class="cell side">[[sideText]]</paper-toggle-button>
-      </template>
-    </paper-radio-group>
-    <canvas id="canvas"></canvas>
+    <div class="container">
+      <paper-radio-group id="control" allow-empty-selection>
+        <template is="dom-repeat" items="{{pointTexts}}">
+          <paper-radio-button class="cell" id="p[[index]]" name="p[[index]]">[[item]]</paper-radio-button>
+        </template>
+        <template is="dom-if" if="{{sideSelect}}">
+          <paper-toggle-button id="side" checked="{{fromRight::change}}" class="cell">[[sideText]]</paper-toggle-button>
+        </template>
+      </paper-radio-group>
+      <div class="canvas-container"><canvas id="canvas"></canvas></div>
+    </div>
   </template>
 
   <script>
@@ -154,9 +165,6 @@
             type: Object,
             observer: '_imgChanged'
           },
-          image_info: {
-            type: Object
-          },
           sideSelect: {
             type: Boolean,
             value: false
@@ -164,6 +172,7 @@
           fromRight: {
             type: Boolean,
             value: true,
+            reflectToAttribute: true,
             observer: '_draw'
           },
           sideText: {
@@ -173,6 +182,10 @@
           pointTexts: {
             type: Array,
             value: ['P1']
+          },
+          points: {
+            type: Object,
+            computed: '_calcPoints(image_points, image_info)'
           }
         };
       }
@@ -190,7 +203,29 @@
         this.$.canvas.addEventListener('mousemove', this._onMouseMove.bind(this));
         this.$.canvas.addEventListener('mousedown', this._onMouseMove.bind(this));
 
-        this.points = new Array(this.pointTexts.length).fill({x: -1, y: -1});
+        this.image_points = new Array(this.pointTexts.length).fill({x: -1, y: -1});
+      }
+
+      _calcPoints(points, info){
+        const all_points_valid = points.every(function(p, i){
+            return typeof info != 'undefined' && !info.is_out_of_range(p);
+          });
+
+        let result = function(){
+            if(all_points_valid){
+              return points.map(function(p, i){
+                  return {
+                      x: (p.x - info.x) / info.scale,
+                      y: (p.y - info.y) / info.scale
+                    };
+                });
+            }else{
+              return undefined;
+            }
+          }();
+
+        this.setAttribute('points-string', JSON.stringify(result));
+        return result;
       }
 
       _onMouseMove(event){
@@ -201,7 +236,7 @@
             y: event.clientY - rect.top
           };
 
-          this.points[this.$.control.selected.substr(1)] = p;
+          this.image_points[this.$.control.selected.substr(1)] = p;
 
           this._draw();
         }
@@ -229,11 +264,11 @@
 
         if(!this.image_info) return;
 
-        const is_valid = function(p){
-          return !!p && !this.image_info.is_out_of_range(p);
-        }.bind(this);
+        const isValid = function(p){
+            return !this.image_info.is_out_of_range(p);
+          }.bind(this);
 
-        const points_valid = this.points.map(is_valid);
+        const points_valid = this.image_points.map(isValid);
 
         const is_true = function(v){ return v === true; };
 
@@ -257,7 +292,7 @@
           ctx.fillStyle = color;
 
           if(points_valid.length == 1 || !points_valid.every(is_true)){
-            this.points.forEach(function(p, i){
+            this.image_points.forEach(function(p, i){
                 if(!points_valid[i]) return;
 
                 // draw cross
@@ -272,15 +307,15 @@
             // draw vectors
             ctx.beginPath();
 
-            let p1 = this.points[0];
-            let p2 = this.points[1];
+            let p1 = this.image_points[0];
+            let p2 = this.image_points[1];
             let a = Math.atan2(p2.y - p1.y, p2.x - p1.x);
             ctx.moveTo(p1.x - length * Math.cos(a - Math.PI / 2), p1.y - length * Math.sin(a - Math.PI / 2));
             ctx.lineTo(p1.x - length * Math.cos(a + Math.PI / 2), p1.y - length * Math.sin(a + Math.PI / 2));
 
-            for(let i = 0; i < this.points.length - 1; ++i){
-              p1 = this.points[i];
-              p2 = this.points[i + 1];
+            for(let i = 0; i < this.image_points.length - 1; ++i){
+              p1 = this.image_points[i];
+              p2 = this.image_points[i + 1];
 
               ctx.moveTo(p1.x, p1.y);
               ctx.lineTo(p2.x, p2.y);
