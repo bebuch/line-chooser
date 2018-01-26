@@ -84,7 +84,6 @@
      * @param line_scale  : factor for space beween lines (1 == no space)
      */
     paint_centered_wrap = function(ctx, text, x, y, w, h, line_height, line_scale = 1) {
-        console.log(x, y, w, h);
       /*
        * @param ctx : The 2d context
        * @param mw  : The max width of the text accepted
@@ -348,7 +347,6 @@
 
 
       _setImage(img){
-        console.log("set image");
         if(typeof img === 'undefined' || img instanceof HTMLImageElement){
           this.image = img;
         }else{
@@ -357,12 +355,10 @@
       }
 
       _setState(state){
-        console.log(state);
         this.state = state;
       }
 
       _urlChanged(){
-        console.log("_urlChanged()");
         const image = new Image();
         const line_chooser = this;
         image.onload = function(){
@@ -375,8 +371,6 @@
       }
 
       _imgChanged(){
-        console.log("_imgChanged()");
-
         if(this.image){
           this._setState('draw');
         }else{
