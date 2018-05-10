@@ -1,2 +1,3 @@
 # ignore bin directory
 **.tmp
+bower_components
