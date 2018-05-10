@@ -7,7 +7,7 @@
     "iron-resizable-behavior": "PolymerElements/iron-resizable-behavior#^2.0.1",
     "paper-radio-button": "PolymerElements/paper-radio-button#^2.0.0",
     "paper-radio-group": "PolymerElements/paper-radio-group#^2.0.0",
-    "paper-toggle-button": "PolymerElements/paper-toggle-button#^2.0.0",
+    "paper-toggle-button": "bebuch/paper-toggle-button#master",
     "iron-test-helpers": "PolymerElements/iron-test-helpers#^2.0.0"
   },
   "devDependencies": {
