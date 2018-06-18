@@ -62,10 +62,10 @@
     <div class="container">
       <paper-radio-group id="control" allow-empty-selection>
         <template is="dom-repeat" items="{{pointTexts}}">
-          <paper-radio-button class="cell" id="p[[index]]" name="p[[index]]">[[item]]</paper-radio-button>
+          <paper-radio-button disabled$="[[disabled]]" class="cell" id="p[[index]]" name="p[[index]]">[[item]]</paper-radio-button>
         </template>
         <template is="dom-if" if="{{sideSelect}}">
-          <paper-toggle-button id="side" checked="{{fromRight::change}}" class="cell">[[sideText]]</paper-toggle-button>
+          <paper-toggle-button disabled$="[[disabled]]" id="side" checked="{{fromRight::change}}" class="cell">[[sideText]]</paper-toggle-button>
         </template>
       </paper-radio-group>
       <div class="canvas-container"><canvas id="canvas"></canvas></div>
@@ -185,6 +185,10 @@
           points: {
             type: Object,
             computed: '_calcPoints(image_points, image_info)'
+          },
+          disabled: {
+            type: Boolean,
+            value: false
           }
         };
       }
