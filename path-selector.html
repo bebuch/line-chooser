@@ -171,8 +171,7 @@
           fromRight: {
             type: Boolean,
             value: true,
-            reflectToAttribute: true,
-            observer: '_draw'
+            observer: '_fromRightChanged'
           },
           sideText: {
             type: String,
@@ -191,6 +190,9 @@
 
       constructor(){
         super();
+
+        this.image_points = new Array(this.pointTexts.length).fill({x: -1, y: -1});
+
         this._setState('init');
       }
 
@@ -201,8 +203,6 @@
 
         this.$.canvas.addEventListener('mousemove', this._onMouseMove.bind(this));
         this.$.canvas.addEventListener('mousedown', this._onMouseMove.bind(this));
-
-        this.image_points = new Array(this.pointTexts.length).fill({x: -1, y: -1});
       }
 
       _fireData(){
@@ -224,7 +224,10 @@
             }
           }.bind(this)();
 
-        this.dispatchEvent(new CustomEvent('data', {detail: points}));
+        this.dispatchEvent(new CustomEvent('data', {detail: {
+            points: points,
+            fromRight: this.fromRight
+          }}));
       }
 
       _onMouseMove(event){
@@ -240,6 +243,11 @@
 
           this._draw();
         }
+      }
+
+      _fromRightChanged(){
+        this._draw();
+        this._fireData();
       }
 
       _draw(){
