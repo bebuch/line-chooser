@@ -209,7 +209,7 @@
         const all_points_valid = this.image_points.every(function(p, i){
             return typeof this.image_info != 'undefined' &&
               !this.image_info.is_out_of_range(p);
-          }.bind(this));
+          }.bind(this)) && this.image_points.length == this.pointTexts.length;
 
         let points = function(){
             if(all_points_valid){
@@ -224,10 +224,13 @@
             }
           }.bind(this)();
 
-        this.dispatchEvent(new CustomEvent('data', {detail: {
+        let data = {
             points: points,
             fromRight: this.fromRight
-          }}));
+          };
+
+        console.log(data);
+        this.dispatchEvent(new CustomEvent('data', {detail: data}));
       }
 
       _onMouseMove(event){
